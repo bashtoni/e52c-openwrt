@@ -7,5 +7,4 @@ There are a few major differences:
 - Only Radxa e52c supported
 - Uses the official OpenWrt rootfs
 - Builds without requiring root privileges
-
-For now this still uses a modified kernel from https://github.com/breakingbadboy/OpenWrt
+- Uses mainline kernel

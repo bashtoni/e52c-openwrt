@@ -1,0 +1,5 @@
+[Match]
+Driver=bonding
+
+[Link]
+MACAddressPolicy=none
