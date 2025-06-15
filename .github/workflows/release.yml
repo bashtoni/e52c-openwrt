@@ -8,6 +8,7 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    container: fedora:latest
     permissions:
       contents: write # Required to create a release
     steps:
@@ -16,11 +17,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            curl tar parted btrfs-progs fdisk util-linux \
-            sed git make gcc bison flex u-boot-tools \
-            crossbuild-essential-arm64
+          sudo dnf install -y --refresh \
+            curl tar parted btrfs-progs util-linux \
+            sed git-core make gcc bison flex uboot-tools \
+            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu glibc-devel-aarch64-linux-gnu
 
       - name: Prepare build arguments
         id: build_args
@@ -79,3 +79,4 @@ jobs:
           asset_path: ${{ steps.get_image_path.outputs.path }}
           asset_name: ${{ steps.get_image_path.outputs.name }}
           asset_content_type: application/octet-stream
+
