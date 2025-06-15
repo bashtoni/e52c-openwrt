@@ -18,9 +18,12 @@ jobs:
       - name: Install dependencies
         run: |
           sudo dnf install -y --refresh \
-            curl tar parted btrfs-progs util-linux \
-            sed git-core make gcc bison flex uboot-tools \
-            gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu glibc-devel-aarch64-linux-gnu
+            curl tar parted e2fsprogs btrfs-progs util-linux bc perl \
+            sed git-core make gcc bison flex uboot-tools gawk \
+            openssl-devel \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu \
+            mkimage
 
       - name: Prepare build arguments
         id: build_args
