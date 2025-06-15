@@ -105,7 +105,7 @@ download_firmware() {
 
 build_boot_partition() {
     echo "--- Building boot partition ---"
-    cp "${KERNEL_BUILD_DIR}/arch/arm64/boot/Image" "${BOOT_DIR}/vmlinuz"
+    cp "${KERNEL_BUILD_DIR}/arch/arm64/boot/Image" "${BOOT_DIR}/Image"
 
     if [ ! -d "initrd" ]; then
         die "'initrd/' directory not found. Please create it to build the initrd."
@@ -120,8 +120,8 @@ build_boot_partition() {
         -d "$temp_initrd_gz" "${BOOT_DIR}/uInitrd"
 
     echo "Copying device tree..."
-    mkdir -p "${BOOT_DIR}/rockchip"
-    cp -a "${KERNEL_BUILD_DIR}/arch/arm64/boot/dts/rockchip/"*.dtb "${BOOT_DIR}/rockchip/"
+    mkdir -p "${BOOT_DIR}/dtb/rockchip"
+    cp -a "${KERNEL_BUILD_DIR}/arch/arm64/boot/dts/rockchip/"*.dtb "${BOOT_DIR}/dtb/rockchip/"
 
     cp -a boot_files/* "${BOOT_DIR}"
 
@@ -139,6 +139,8 @@ build_root_partition() {
     echo "--- Building root partition ---"
     echo "Downloading and extracting OpenWrt rootfs..."
     curl -L "$OPENWRT_ROOTFS" | tar zx -C "$ROOT_DIR"
+    # Remove old kernel modules
+    rm -rf "${ROOT_DIR}/lib/modules" && mkdir -p "${ROOT_DIR}/lib/modules"
 
     echo "LABEL=ROOTFS / btrfs defaults,compress=zstd:6 0 1" >> "${ROOT_DIR}/etc/fstab"
     echo "LABEL=BOOTFS /boot ext4 noatime,errors=remount-ro 0 2" >> "${ROOT_DIR}/etc/fstab"
