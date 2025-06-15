@@ -1,0 +1,81 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - '*' # Triggers on any tag
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to create a release
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            curl tar parted btrfs-progs fdisk util-linux \
+            sed git make gcc bison flex u-boot-tools \
+            crossbuild-essential-arm64
+
+      - name: Prepare build arguments
+        id: build_args
+        run: |
+          TAG=${{ github.ref_name }}
+          # Strip 'v' prefix if it exists
+          VERSION=${TAG#v}
+
+          # The build script expects KERNEL_NAME like '6.16.0-rc1' to produce a KERNEL_TARBALL_VERSION of '6.16-rc1'.
+          # We will convert tags like '6.16-rc1' to '6.16.0-rc1' for the script to handle the kernel download URL correctly.
+          if [[ "$VERSION" == *"-rc"* && "$VERSION" != *".0-rc"* ]]; then
+            KERNEL_NAME=$(echo "$VERSION" | sed 's/-rc/.0-rc/')
+          else
+            KERNEL_NAME="$VERSION"
+          fi
+          echo "kernel_name=${KERNEL_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        run: ./build.sh ${{ steps.build_args.outputs.kernel_name }}
+
+      - name: Get image path
+        id: get_image_path
+        run: |
+          IMAGE_PATH=$(find build -name 'openwrt-*.img' -type f)
+          if [ -z "$IMAGE_PATH" ]; then
+            echo "::error::Built image not found in build/ directory."
+            exit 1
+          fi
+          if [ $(echo "$IMAGE_PATH" | wc -l) -ne 1 ]; then
+            echo "::error::Multiple possible images found. Expected one 'openwrt-*.img'."
+            ls -lR build/
+            exit 1
+          fi
+          echo "path=${IMAGE_PATH}" >> $GITHUB_OUTPUT
+          echo "name=$(basename "${IMAGE_PATH}")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Image for kernel version ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') }}
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.get_image_path.outputs.path }}
+          asset_name: ${{ steps.get_image_path.outputs.name }}
+          asset_content_type: application/octet-stream
